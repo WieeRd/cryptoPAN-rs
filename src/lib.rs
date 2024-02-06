@@ -86,15 +86,15 @@ impl CryptoPAn {
         })
     }
 
+    /// Convert a byte array to a u64 value.
     fn to_int(byte_array: &[u8]) -> u128 {
-        // Convert a byte array to a u64 value.
         byte_array
             .iter()
             .fold(0u128, |acc, &byte| (acc << 8) | u128::from(byte))
     }
 
+    /// Convert a u64 value to a byte array.
     fn to_array(&self, int_value: u128, int_value_len: usize) -> Vec<u8> {
-        // Convert a u64 value to a byte array.
         let mut byte_array: Vec<u8> = Vec::with_capacity(int_value_len);
         for i in 0..int_value_len {
             byte_array.insert(0, ((int_value >> (i * 8)) & 0xff) as u8);
@@ -102,17 +102,9 @@ impl CryptoPAn {
         byte_array
     }
 
+    /// Generates an array of bit masks to calculate n-bits padding data.
     fn gen_masks() -> Vec<u128> {
-        // Generates an array of bit masks to calculate n-bits padding data.
-        let mask128: u128 = (0..128).fold(0u128, |acc, _| (acc << 1) | 1);
-        let mut masks = vec![0u128; 128];
-
-        for l in 0..128 {
-            // self._masks[0]   <- 128 bits all 1
-            // self._masks[127] <- 1
-            masks[l] = mask128 >> l;
-        }
-        masks
+        (0..128).map(|i| u128::MAX >> i).collect()
     }
 
     pub fn anonymize(&mut self, addr: &str) -> Result<IpAddr, CryptoPAnError> {
