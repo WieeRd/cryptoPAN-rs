@@ -147,12 +147,10 @@ impl CryptoPAn {
 
         let anonymized = self.anonymize_bin(addr, version)?;
 
-        println!("Anonymized IP: {}", anonymized);
         Ok(Self::format_ip(anonymized, version))
     }
 
     fn anonymize_bin(&mut self, addr: u128, version: u8) -> Result<u128, CryptoPAnError> {
-        assert!(version == 4 || version == 6);
         let pos_max = if version == 4 { 32 } else { 128 };
         let ext_addr = if version == 4 { addr << 96 } else { addr };
 
