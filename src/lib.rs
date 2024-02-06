@@ -138,7 +138,7 @@ impl CryptoPAn {
         masks
     }
 
-    fn anonymize(&mut self, addr: &str) -> Result<String, CryptoPAnError> {
+    fn anonymize(&mut self, addr: &str) -> Result<IpAddr, CryptoPAnError> {
         let ip: IpAddr = addr.parse()?;
         let (addr, version) = match ip {
             IpAddr::V4(ipv4) => (u128::from(u32::from(ipv4)), 4),
@@ -185,10 +185,10 @@ impl CryptoPAn {
         Ok(addr ^ result)
     }
 
-    fn format_ip(addr: u128, version: u8) -> String {
+    fn format_ip(addr: u128, version: u8) -> IpAddr {
         match version {
-            4 => Ipv4Addr::from((addr & 0xFFFFFFFF) as u32).to_string(),
-            6 => Ipv6Addr::from(addr).to_string(),
+            4 => IpAddr::V4(Ipv4Addr::from((addr & 0xFFFFFFFF) as u32)),
+            6 => IpAddr::V6(Ipv6Addr::from(addr)),
             _ => unreachable!(),
         }
     }
@@ -206,12 +206,12 @@ mod tests {
         ])
         .unwrap();
         let anonymized = cp.anonymize(addr).unwrap();
-        assert_eq!(anonymized, expected);
+        assert_eq!(anonymized.to_string(), expected);
     }
     fn run_non_key_test(addr: &str, expected: &str) {
         let mut cp = CryptoPAn::new(&[0; 32]).unwrap();
         let anonymized = cp.anonymize(addr).unwrap();
-        assert_eq!(anonymized, expected);
+        assert_eq!(anonymized.to_string(), expected);
     }
 
     #[test]
