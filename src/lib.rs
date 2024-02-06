@@ -1,6 +1,22 @@
 use openssl::symm::{Cipher, Crypter, Mode};
 use std::net::{AddrParseError, IpAddr, Ipv4Addr, Ipv6Addr};
 
+/// Masks zero on `n` most significant bits of `value`.
+///
+/// # Examples
+///
+/// ```
+/// use crypto_pan::zero_n_most_bits;
+///
+/// let value = 0xFFFF_FFFF_FFFF_FFFF_FFFF_FFFF_FFFF_FFFF; // u128::MAX
+/// let after = 0x0000_FFFF_FFFF_FFFF_FFFF_FFFF_FFFF_FFFF;
+///
+/// assert_eq!(zero_n_most_bits(value, 16), after);
+/// ```
+fn zero_n_most_bits(value: u128, n: u8) -> u128 {
+    value & (u128::MAX >> n)
+}
+
 #[derive(Debug)]
 pub enum CryptoPAnError {
     CipherError(CipherError),
@@ -48,7 +64,6 @@ impl std::fmt::Display for CipherError {
 pub struct CryptoPAn {
     cipher: Crypter,
     padding_int: u128,
-    masks: Vec<u128>,
 }
 
 impl CryptoPAn {
@@ -82,7 +97,6 @@ impl CryptoPAn {
         Ok(Self {
             cipher,
             padding_int,
-            masks: Self::gen_masks(),
         })
     }
 
@@ -100,11 +114,6 @@ impl CryptoPAn {
             byte_array.insert(0, ((int_value >> (i * 8)) & 0xff) as u8);
         }
         byte_array
-    }
-
-    /// Generates an array of bit masks to calculate n-bits padding data.
-    fn gen_masks() -> Vec<u128> {
-        (0..128).map(|i| u128::MAX >> i).collect()
     }
 
     pub fn anonymize(&mut self, addr: &str) -> Result<IpAddr, CryptoPAnError> {
@@ -126,7 +135,8 @@ impl CryptoPAn {
         let mut flip_array = Vec::new();
         for pos in 0..pos_max {
             let prefix = ext_addr >> (128 - pos) << (128 - pos);
-            let padded_addr = prefix | (self.padding_int & self.masks[pos as usize]);
+            // let padded_addr = prefix | (self.padding_int & self.masks[pos as usize]);
+            let padded_addr = prefix | zero_n_most_bits(self.padding_int, pos);
             let padded_bytes = self.to_array(padded_addr, 16);
 
             let block_size = Cipher::aes_128_ecb().block_size();
