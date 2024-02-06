@@ -53,7 +53,6 @@ pub struct CryptoPAn {
     cipher: Crypter,
     padding_int: u128,
     masks: Vec<u128>,
-    key: Vec<u8>,
 }
 
 impl CryptoPAn {
@@ -79,7 +78,7 @@ impl CryptoPAn {
         let mut padding = vec![0; 16 + block_size]; // Output buffer sized to 16 bytes.
 
         // Encrypt the second half of the key to use as padding.
-        // Note: `update` followed by `finalize` ensures complete encryption.
+        // NOTE: `update` followed by `finalize` ensures complete encryption.
         let mut cnt = cipher
             .update(&key[16..], &mut padding)
             .map_err(|_| CipherError::EncryptionUpdateFailed)?;
@@ -94,19 +93,7 @@ impl CryptoPAn {
             cipher,
             padding_int,
             masks: Self::gen_masks(),
-            key: key.to_vec(),
         })
-    }
-
-    fn _to_int(bytes: &[u8]) -> u128 {
-        // Ensure that the byte slice has a length of up to 16 bytes
-        // and pad it with zeros if it's shorter.
-        let mut padded_bytes = [0u8; 16];
-        let bytes_to_copy = bytes.len().min(16);
-        padded_bytes[16 - bytes_to_copy..].copy_from_slice(&bytes[..bytes_to_copy]);
-
-        // Convert the byte array to a u128 integer
-        u128::from_be_bytes(padded_bytes)
     }
 
     fn to_int(byte_array: &[u8]) -> u128 {
@@ -173,7 +160,6 @@ impl CryptoPAn {
                 .map_err(|_| CipherError::EncryptionFinalizeFailed)?;
             encrypted.truncate(cnt);
 
-            // let f = self.encrypt_block(&self.to_array(padded_addr, 16))?;
             flip_array.push((encrypted[0] >> 7) & 1);
         }
         let result = flip_array
