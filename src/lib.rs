@@ -1,4 +1,4 @@
-use openssl::symm::{ Cipher, Crypter, Mode};
+use openssl::symm::{Cipher, Crypter, Mode};
 use std::net::{AddrParseError, IpAddr, Ipv4Addr, Ipv6Addr};
 
 #[derive(Debug)]
@@ -6,6 +6,7 @@ pub enum CryptoPAnError {
     CipherError(CipherError),
     AddressParseError(AddrParseError),
 }
+
 impl std::fmt::Display for CryptoPAnError {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
@@ -34,6 +35,7 @@ pub enum CipherError {
     EncryptionUpdateFailed,
     EncryptionFinalizeFailed,
 }
+
 impl std::fmt::Display for CipherError {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
@@ -178,12 +180,12 @@ impl CryptoPAn {
     }
 }
 
-// test module
 #[cfg(test)]
 mod tests {
     use super::*;
+
     fn run_key_test(addr: &str, expected: &str) {
-        // following key is the key used in the original crypto-pan source distribution code.
+        // Following key is the key used in the original crypto-pan source distribution code.
         let mut cp = CryptoPAn::new(&[
             21, 34, 23, 141, 51, 164, 207, 128, 19, 10, 91, 22, 73, 144, 125, 16, 216, 152, 143,
             131, 121, 121, 101, 39, 98, 87, 76, 45, 42, 132, 34, 2,
@@ -192,6 +194,7 @@ mod tests {
         let anonymized = cp.anonymize(addr).unwrap();
         assert_eq!(anonymized.to_string(), expected);
     }
+
     fn run_non_key_test(addr: &str, expected: &str) {
         let mut cp = CryptoPAn::new(&[0; 32]).unwrap();
         let anonymized = cp.anonymize(addr).unwrap();
@@ -202,18 +205,22 @@ mod tests {
     fn test_anonymize_ipv4() {
         run_non_key_test("192.0.2.1", "2.90.93.17");
     }
+
     #[test]
     fn test_anonymize_ipv4_2() {
         run_non_key_test("192.0.2.2", "2.90.93.18");
     }
+
     #[test]
     fn test_anonymize_ipv4_3() {
         run_non_key_test("192.0.2.3", "2.90.93.19");
     }
+
     #[test]
     fn test_anonymize_ipv4_4() {
         run_non_key_test("192.0.3.3", "2.90.94.19");
     }
+
     #[test]
     fn test_anonymize_ipv4_5() {
         run_key_test("195.205.63.10", "255.186.223.5");
@@ -223,6 +230,7 @@ mod tests {
     fn test_anonymize_ipv6() {
         run_non_key_test("2001:db8::1", "dd92:2c44:3fc0:ff1e:7ff9:c7f0:8180:7e00");
     }
+
     #[test]
     fn test_anonymize_ipv6_parcial() {
         run_key_test("::1", "78ff:f001:9fc0:20df:8380:b1f1:704:ed");
