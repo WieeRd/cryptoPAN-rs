@@ -1,9 +1,13 @@
 [package]
-name = "cryptoPAN-rs"
+# FIX: LATER: find a better name for the package
+# | - ideally `lowercase`, alternatively `snake_case` or `kebab-case`
+# | - `-rs` is fine for repo name but redundant for crate name
+# | - rename the repo to `pancake-rs` that would be funni
+# | - both `cryptopan` and `pancake` are empty placeholder crates on crates.io
+# |   and the authors seem pretty active on GitHub. maybe you can ask them.
+name = "crypto-pan"
 version = "0.1.0"
 edition = "2021"
-
-# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
 openssl = "0.10.63"
