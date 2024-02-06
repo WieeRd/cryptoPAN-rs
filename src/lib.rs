@@ -1,5 +1,9 @@
+use std::{
+    fmt::{self, Display, Formatter},
+    net::{AddrParseError, IpAddr, Ipv4Addr, Ipv6Addr},
+};
+
 use openssl::symm::{Cipher, Crypter, Mode};
-use std::net::{AddrParseError, IpAddr, Ipv4Addr, Ipv6Addr};
 
 /// Masks zero on `n` most significant bits of `value`.
 ///
@@ -23,8 +27,8 @@ pub enum CryptoPAnError {
     AddressParseError(AddrParseError),
 }
 
-impl std::fmt::Display for CryptoPAnError {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+impl Display for CryptoPAnError {
+    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
         match self {
             CryptoPAnError::CipherError(err) => write!(f, "{}", err),
             CryptoPAnError::AddressParseError(err) => write!(f, "{}", err),
@@ -44,6 +48,8 @@ impl From<AddrParseError> for CryptoPAnError {
     }
 }
 
+// FIX: preserve the original `openssl::error::ErrorStack`
+// | the cause of cipher errors are being *erased* in `.map_err(|_| ...)`
 #[derive(Debug)]
 pub enum CipherError {
     CipherCreationFailed,
@@ -51,8 +57,8 @@ pub enum CipherError {
     EncryptionFinalizeFailed,
 }
 
-impl std::fmt::Display for CipherError {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+impl Display for CipherError {
+    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
         match self {
             CipherError::CipherCreationFailed => write!(f, "Cipher creation failed"),
             CipherError::EncryptionUpdateFailed => write!(f, "Encryption Update failed"),
