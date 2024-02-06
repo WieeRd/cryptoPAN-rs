@@ -138,7 +138,7 @@ impl CryptoPAn {
         masks
     }
 
-    fn anonymize(&mut self, addr: &str) -> Result<IpAddr, CryptoPAnError> {
+    pub fn anonymize(&mut self, addr: &str) -> Result<IpAddr, CryptoPAnError> {
         let ip: IpAddr = addr.parse()?;
         let (addr, version) = match ip {
             IpAddr::V4(ipv4) => (u128::from(u32::from(ipv4)), 4),
