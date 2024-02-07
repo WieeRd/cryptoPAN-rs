@@ -70,10 +70,10 @@ impl CryptoPAn {
             None,       // ECB mode does not use an IV.
         )
         .map_err(|_| CipherError::CipherCreationFailed)?;
-        
+
         // Disable padding from the crypter.
         cipher.pad(false);
-        
+
         // Correctly size the buffer for the output of the encryption operation.
         // The AES block size is 16 bytes, so the output will also be 16 bytes.
         let block_size = Cipher::aes_128_ecb().block_size();
