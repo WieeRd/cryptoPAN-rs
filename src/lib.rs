@@ -132,7 +132,8 @@ impl CryptoPAn {
             let padded_addr = (self.padding_int & mask) | (ext_addr & !mask);
             let padded_bytes = self.to_array(padded_addr, 16);
 
-            let mut encrypted = vec![0u8; padded_bytes.len() + Cipher::aes_128_ecb().block_size()];
+            let block_size = Cipher::aes_128_ecb().block_size();
+            let mut encrypted = vec![0u8; 16 + block_size];
             let mut cnt = self
                 .cipher
                 .update(&padded_bytes, &mut encrypted)
