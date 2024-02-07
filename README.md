@@ -6,7 +6,7 @@ You can refer to the [Wikipedia page](https://en.wikipedia.org/wiki/Crypto-PAn).
 
 Currently only supports OpenSSL as a backend.
 
-- [ ] Support RustCrypto's AES implementation as Background 
+- [ ] Support RustCrypto's AES implementation as backend 
 
 ## Features
 
