@@ -2,7 +2,8 @@
 
 `cryptoPAN-rs` is a Rust version of Crypto-PAn (Prefix-preserving Anonymization) algorithm. It offers a fast, secure, and scalable solution for network traffic analysis and privacy protection. The Crypto PAn algorithm, allows for the prefix-preserving anonymization of IP addresses, ensuring that the anonymized addresses maintain the same prefix as the original addresses for any given prefix length, which is crucial for network analysis tasks.
 You can refer to the [Wikipedia page](https://en.wikipedia.org/wiki/Crypto-PAn).
-## Background
+
+## Backend
 
 Currently only supports OpenSSL as a backend.
 
