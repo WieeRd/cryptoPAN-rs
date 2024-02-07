@@ -55,7 +55,7 @@ pub struct CryptoPAn {
 }
 
 impl CryptoPAn {
-    fn new(key: &[u8]) -> Result<Self, CryptoPAnError> {
+    pub fn new(key: &[u8]) -> Result<Self, CryptoPAnError> {
         if key.len() != 32 {
             return Err(CryptoPAnError::CipherError(CipherError::InvalidKeyLength(
                 key.len(),
