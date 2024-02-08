@@ -1,4 +1,6 @@
 use openssl::symm::{Cipher, Crypter, Mode};
+
+// FEAT: LATER: add support for RustCrypto's AES Implementation as a backend via feature flag 
 use std::net::{AddrParseError, IpAddr, Ipv4Addr, Ipv6Addr};
 
 #[derive(Debug)]
@@ -151,6 +153,7 @@ impl CryptoPAn {
     }
 }
 
+// REFACTOR: TASK: refactor tests to use for statement instead of writing one by one
 #[cfg(test)]
 mod tests {
     use super::*;
