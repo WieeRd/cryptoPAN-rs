@@ -101,14 +101,13 @@ impl CryptoPAn {
         byte_array
     }
 
-    pub fn anonymize(&mut self, addr: &str) -> Result<IpAddr, CryptoPAnError> {
-        let ip: IpAddr = addr.parse()?;
-        let (addr, version) = match ip {
+    pub fn anonymize(&mut self, addr: IpAddr) -> Result<IpAddr, CryptoPAnError> {
+        let (addr_int, version) = match addr {
             IpAddr::V4(ipv4) => (u128::from(u32::from(ipv4)), 4),
             IpAddr::V6(ipv6) => (u128::from(ipv6), 6),
         };
 
-        let anonymized = self.anonymize_bin(addr, version)?;
+        let anonymized = self.anonymize_bin(addr_int, version)?;
 
         Ok(Self::format_ip(anonymized, version))
     }
@@ -164,7 +163,7 @@ mod tests {
             131, 121, 121, 101, 39, 98, 87, 76, 45, 42, 132, 34, 2,
         ])
         .unwrap();
-        let anonymized = cp.anonymize(addr).unwrap();
+        let anonymized = cp.anonymize(addr.parse().unwrap()).unwrap();
         assert_eq!(anonymized.to_string(), expected);
     }
 
