@@ -29,7 +29,6 @@ impl From<AddrParseError> for CryptoPAnError {
 
 #[derive(Debug)]
 pub enum CipherError {
-    InvalidKeyLength(usize),
     CipherCreationFailed,
     EncryptionUpdateFailed,
     EncryptionFinalizeFailed,
@@ -37,11 +36,6 @@ pub enum CipherError {
 impl std::fmt::Display for CipherError {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
-            CipherError::InvalidKeyLength(len) => write!(
-                f,
-                "Invalid key length (must be 32 bytes)\n Found {} bytes",
-                len
-            ),
             CipherError::CipherCreationFailed => write!(f, "Cipher creation failed"),
             CipherError::EncryptionUpdateFailed => write!(f, "Encryption Update failed"),
             CipherError::EncryptionFinalizeFailed => write!(f, "Encryption Finalize failed"),
@@ -55,13 +49,7 @@ pub struct CryptoPAn {
 }
 
 impl CryptoPAn {
-    pub fn new(key: &[u8]) -> Result<Self, CryptoPAnError> {
-        if key.len() != 32 {
-            return Err(CryptoPAnError::CipherError(CipherError::InvalidKeyLength(
-                key.len(),
-            )));
-        }
-
+    pub fn new(key: &[u8; 32]) -> Result<Self, CryptoPAnError> {
         // Prepare the AES cipher for encryption.
         let mut cipher = Crypter::new(
             Cipher::aes_128_ecb(),
@@ -95,15 +83,15 @@ impl CryptoPAn {
         })
     }
 
+    // Convert a byte array to a u64 value.
     fn to_int(byte_array: &[u8]) -> u128 {
-        // Convert a byte array to a u64 value.
         byte_array
             .iter()
             .fold(0u128, |acc, &byte| (acc << 8) | u128::from(byte))
     }
 
+    // Convert a u64 value to a byte array.
     fn to_array(&self, int_value: u128, int_value_len: usize) -> Vec<u8> {
-        // Convert a u64 value to a byte array.
         let mut byte_array: Vec<u8> = Vec::with_capacity(int_value_len);
         for i in 0..int_value_len {
             byte_array.insert(0, ((int_value >> (i * 8)) & 0xff) as u8);
@@ -163,12 +151,11 @@ impl CryptoPAn {
     }
 }
 
-// test module
 #[cfg(test)]
 mod tests {
     use super::*;
     fn run_key_test(addr: &str, expected: &str) {
-        // following key is the key used in the original crypto-pan source distribution code.
+        // Following key is the key used in the original crypto-pan source distribution code.
         let mut cp = CryptoPAn::new(&[
             21, 34, 23, 141, 51, 164, 207, 128, 19, 10, 91, 22, 73, 144, 125, 16, 216, 152, 143,
             131, 121, 121, 101, 39, 98, 87, 76, 45, 42, 132, 34, 2,
