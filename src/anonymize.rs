@@ -5,6 +5,38 @@ use openssl::{
     symm::{Cipher, Crypter, Mode},
 };
 
+
+/// Defines a common interface for encrypting a 128-bit data.
+/// 
+/// Although AES-128 is commonly used by CryptoPAn implementations, any 128-bit [block cipher]
+/// can be used as a encryption backend. As a result, this library is designed so that [`Anonymizer`]
+/// is generic over [`Encrypter`].
+///
+/// It is the implementer's responsibility to ensure that the encrypter is:
+/// 
+/// - **Deterministic**: Always produces same output when given same input.
+/// - **Secure**: Cryptographically secure, to prevent unauthorized decryption.
+/// - **Efficient**: The encryption happens frequently during an anonymization\
+///   (128 times per each IPv6 address) and needs to be reasonably fast.
+///
+/// [block cipher]: https://en.wikipedia.org/wiki/Block_cipher
+pub trait Encrypter: Sized {
+    /// The type returned when an error occurs during an encryption.
+    type Error;
+
+    /// Initializes an [`Encrypter`] from a 128-bit key.
+    fn from_key(key: &[u8; 16]) -> Result<Self, Self::Error>;
+
+    /// Encrypts a 128-bit block data.
+    ///
+    /// # Note
+    ///
+    /// Cipher implementations often require mutable access to its internal state during an
+    /// encryption. In these cases, [interior mutability][std::cell] such as `UnsafeCell` will have
+    /// to be used and the implementer must ensure that the output of this method is deterministic.
+    fn encrypt(&self, input: &[u8; 16]) -> Result<[u8; 16], Self::Error>;
+}
+
 pub struct Anonymizer {
     crypter: Crypter,
     padding: u128,
