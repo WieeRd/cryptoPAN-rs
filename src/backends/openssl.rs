@@ -62,7 +62,7 @@ mod tests {
     ";
 
     fn run_test_cases(cases: &[(&str, &str)]) -> Result<(), ErrorStack> {
-        let mut pancake = Anonymizer::<Aes128Enc>::new(KEY)?;
+        let mut pancake: Anonymizer<Aes128Enc> = Anonymizer::new(KEY)?;
         for (addr, expected) in cases {
             let anonymized = pancake.anonymize_str(addr)?;
             let expected: IpAddr = expected.parse().unwrap();
