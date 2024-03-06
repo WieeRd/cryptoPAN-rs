@@ -45,10 +45,12 @@ impl<E: Encrypter> Anonymizer<E> {
         let enc_key: &[u8; 16] = enc_key.try_into().unwrap();
         let pad_key: &[u8; 16] = pad_key.try_into().unwrap();
 
-        let encrypter = E::from_key(enc_key)?;
-        let padding = encrypter.encrypt(pad_key)?;
+        let encrypter = Encrypter::from_key(enc_key)?;
+        Self::with_encrypter(encrypter, pad_key)
+    }
 
-        // FIX: LATER: padding should be [u8; 16] rather than u128
+    pub fn with_encrypter(encrypter: E, padding: &[u8; 16]) -> Result<Self, E::Error> {
+        let padding = encrypter.encrypt(padding)?;
         let padding = u128::from_be_bytes(padding);
 
         Ok(Self { encrypter, padding })
