@@ -11,10 +11,8 @@ pub struct Aes128Enc {
     inner: UnsafeCell<Crypter>,
 }
 
-impl Encrypter for Aes128Enc {
-    type Error = ErrorStack;
-
-    fn from_key(key: &[u8; 16]) -> Result<Self, Self::Error> {
+impl Aes128Enc {
+    fn from_key(key: &[u8; 16]) -> Result<Self, ErrorStack> {
         let mut crypter = Crypter::new(
             Cipher::aes_128_ecb(),
             Mode::Encrypt,
@@ -28,7 +26,7 @@ impl Encrypter for Aes128Enc {
         })
     }
 
-    fn encrypt(&self, input: &[u8; 16]) -> Result<[u8; 16], Self::Error> {
+    fn encrypt(&self, input: &[u8; 16]) -> Result<[u8; 16], ErrorStack> {
         // The output buffer must be bigger than the input size + the cipher's block size.
         // In this case, `input.len() == 16` + `Cipher::aes_128_ecb().block_size() == 16`
         let mut buf = [0; 16 + 16];
@@ -43,6 +41,16 @@ impl Encrypter for Aes128Enc {
             .expect("exactly 16B should be written because (input size == block size)");
 
         Ok(output)
+    }
+}
+
+impl Encrypter for Aes128Enc {
+    fn from_key(key: &[u8; 16]) -> Self {
+        Self::from_key(key).expect("https://github.com/SkuldNorniern/cryptoPAn-rs/issues/7")
+    }
+
+    fn encrypt(&self, input: &[u8; 16]) -> [u8; 16] {
+        self.encrypt(input).expect("https://github.com/SkuldNorniern/cryptoPAn-rs/issues/7")
     }
 }
 
@@ -61,19 +69,17 @@ mod tests {
         \x62\x57\x4c\x2d\x2a\x84\x22\x02\
     ";
 
-    fn run_test_cases(cases: &[(&str, &str)]) -> Result<(), ErrorStack> {
-        let mut pancake: Anonymizer<Aes128Enc> = Anonymizer::new(KEY)?;
+    fn run_test_cases(cases: &[(&str, &str)]) {
+        let mut pancake: Anonymizer<Aes128Enc> = Anonymizer::new(KEY);
         for (addr, expected) in cases {
-            let anonymized = pancake.anonymize_str(addr)?;
+            let anonymized = pancake.anonymize_str(addr);
             let expected: IpAddr = expected.parse().unwrap();
             assert_eq!(anonymized, expected);
         }
-
-        Ok(())
     }
 
     #[test]
-    fn test_anonymize_ipv4_full() -> Result<(), ErrorStack> {
+    fn test_anonymize_ipv4_full() {
         let cases = [
             ("128.11.68.132", "135.242.180.132"),
             ("129.118.74.4", "134.136.186.123"),
@@ -151,7 +157,7 @@ mod tests {
     }
 
     #[test]
-    fn test_anonymize_ipv6_partial() -> Result<(), ErrorStack> {
+    fn test_anonymize_ipv6_partial() {
         let cases = [
             ("::1", "78ff:f001:9fc0:20df:8380:b1f1:704:ed"),
             ("::2", "78ff:f001:9fc0:20df:8380:b1f1:704:ef"),

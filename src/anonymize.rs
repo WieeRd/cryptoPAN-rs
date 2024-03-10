@@ -15,11 +15,8 @@ use std::net::{IpAddr, Ipv4Addr, Ipv6Addr};
 ///
 /// [block cipher]: https://en.wikipedia.org/wiki/Block_cipher
 pub trait Encrypter: Sized {
-    /// The type returned when an error occurs during an encryption.
-    type Error;
-
     /// Initializes an [`Encrypter`] from a 128-bit key.
-    fn from_key(key: &[u8; 16]) -> Result<Self, Self::Error>;
+    fn from_key(key: &[u8; 16]) -> Self;
 
     /// Encrypts a 128-bit block data.
     ///
@@ -28,7 +25,7 @@ pub trait Encrypter: Sized {
     /// Cipher implementations often require mutable access to its internal state during an
     /// encryption. In these cases, [interior mutability][std::cell] such as `UnsafeCell` will have
     /// to be used and the implementer must ensure that the output of this method is deterministic.
-    fn encrypt(&self, input: &[u8; 16]) -> Result<[u8; 16], Self::Error>;
+    fn encrypt(&self, input: &[u8; 16]) -> [u8; 16];
 }
 
 pub struct Anonymizer<E: Encrypter> {
@@ -37,7 +34,7 @@ pub struct Anonymizer<E: Encrypter> {
 }
 
 impl<E: Encrypter> Anonymizer<E> {
-    pub fn new(key: &[u8; 32]) -> Result<Self, E::Error> {
+    pub fn new(key: &[u8; 32]) -> Self {
         let (enc_key, pad_key) = key.split_at(16);
 
         // array cannot be split into arrays due to const generic limitations
@@ -45,26 +42,26 @@ impl<E: Encrypter> Anonymizer<E> {
         let enc_key: &[u8; 16] = enc_key.try_into().unwrap();
         let pad_key: &[u8; 16] = pad_key.try_into().unwrap();
 
-        let encrypter = Encrypter::from_key(enc_key)?;
+        let encrypter = Encrypter::from_key(enc_key);
         Self::with_encrypter(encrypter, pad_key)
     }
 
-    pub fn with_encrypter(encrypter: E, padding: &[u8; 16]) -> Result<Self, E::Error> {
-        let padding = encrypter.encrypt(padding)?;
+    pub fn with_encrypter(encrypter: E, padding: &[u8; 16]) -> Self {
+        let padding = encrypter.encrypt(padding);
         let padding = u128::from_be_bytes(padding);
 
-        Ok(Self { encrypter, padding })
+        Self { encrypter, padding }
     }
 
-    pub fn anonymize(&mut self, addr: IpAddr) -> Result<IpAddr, E::Error> {
+    pub fn anonymize(&mut self, addr: IpAddr) -> IpAddr {
         let (addr_int, version) = match addr {
             IpAddr::V4(ipv4) => (u128::from(u32::from(ipv4)), 4),
             IpAddr::V6(ipv6) => (u128::from(ipv6), 6),
         };
 
-        let anonymized = self.anonymize_bin(addr_int, version)?;
+        let anonymized = self.anonymize_bin(addr_int, version);
 
-        Ok(Self::format_ip(anonymized, version))
+        Self::format_ip(anonymized, version)
     }
 
     /// Anonymizes an IP address string while preserving the subnet structure.
@@ -79,7 +76,7 @@ impl<E: Encrypter> Anonymizer<E> {
     ///
     /// [`anonymize()`]: CryptoPAn::anonymize()
     #[allow(dead_code)]
-    pub(crate) fn anonymize_str(&mut self, addr: &str) -> Result<IpAddr, E::Error> {
+    pub(crate) fn anonymize_str(&mut self, addr: &str) -> IpAddr {
         // FIX: panicking convenience method is considered unidiomatic
         // | we should decide whether ergonomic is so important or not
         // | (O) -> make this method `pub`
@@ -90,7 +87,7 @@ impl<E: Encrypter> Anonymizer<E> {
         self.anonymize(addr)
     }
 
-    fn anonymize_bin(&mut self, addr: u128, version: u8) -> Result<u128, E::Error> {
+    fn anonymize_bin(&mut self, addr: u128, version: u8) -> u128 {
         // REFACTOR: add `anonymize_bytes()`, accepting any `&[u8; N]` where N <= 16
         let (pos_max, ext_addr) = match version {
             4 => (32, addr << 96),
@@ -105,14 +102,14 @@ impl<E: Encrypter> Anonymizer<E> {
             let padded_addr = (self.padding & mask) | (ext_addr & !mask);
             let padded_bytes = padded_addr.to_be_bytes();
 
-            let encrypted = self.encrypter.encrypt(&padded_bytes)?;
+            let encrypted = self.encrypter.encrypt(&padded_bytes);
             flip_array.push(encrypted[0] >> 7);
         }
         let result = flip_array
             .into_iter()
             .fold(0u128, |acc, x| (acc << 1) | (x as u128));
 
-        Ok(addr ^ result)
+        addr ^ result
     }
 
     fn format_ip(addr: u128, version: u8) -> IpAddr {
