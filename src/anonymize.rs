@@ -53,7 +53,7 @@ impl<E: Encrypter> Anonymizer<E> {
         Self { encrypter, padding }
     }
 
-    pub fn anonymize(&mut self, addr: IpAddr) -> IpAddr {
+    pub fn anonymize(&self, addr: IpAddr) -> IpAddr {
         let (addr_int, version) = match addr {
             IpAddr::V4(ipv4) => (u128::from(u32::from(ipv4)), 4),
             IpAddr::V6(ipv6) => (u128::from(ipv6), 6),
@@ -76,7 +76,7 @@ impl<E: Encrypter> Anonymizer<E> {
     ///
     /// [`anonymize()`]: CryptoPAn::anonymize()
     #[allow(dead_code)]
-    pub(crate) fn anonymize_str(&mut self, addr: &str) -> IpAddr {
+    pub(crate) fn anonymize_str(&self, addr: &str) -> IpAddr {
         // FIX: panicking convenience method is considered unidiomatic
         // | we should decide whether ergonomic is so important or not
         // | (O) -> make this method `pub`
@@ -87,7 +87,7 @@ impl<E: Encrypter> Anonymizer<E> {
         self.anonymize(addr)
     }
 
-    fn anonymize_bin(&mut self, addr: u128, version: u8) -> u128 {
+    fn anonymize_bin(&self, addr: u128, version: u8) -> u128 {
         // REFACTOR: add `anonymize_bytes()`, accepting any `&[u8; N]` where N <= 16
         let (pos_max, ext_addr) = match version {
             4 => (32, addr << 96),
