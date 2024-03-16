@@ -1,5 +1,20 @@
 use std::net::{IpAddr, Ipv4Addr, Ipv6Addr};
 
+/// Merges 2 arrays of same length into 1 using a given closure.
+///
+/// Basically `Iterator::zip(a, b).map(f)` if `a` and `b` were iterators.
+#[allow(dead_code)]
+fn zip_with<F, const N: usize>(a: &[u8; N], b: &[u8; N], f: F) -> [u8; N]
+where
+    F: Fn(u8, u8) -> u8,
+{
+    std::array::from_fn(|i| unsafe {
+        let a = a.get_unchecked(i);
+        let b = b.get_unchecked(i);
+        f(*a, *b)
+    })
+}
+
 /// Defines a common interface for encrypting a 128-bit data.
 ///
 /// Although AES-128 is commonly used by CryptoPAn implementations, any 128-bit [block cipher]
