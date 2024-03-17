@@ -1,4 +1,4 @@
-use std::net::IpAddr;
+use std::net::{IpAddr, Ipv4Addr, Ipv6Addr};
 
 /// Merges 2 arrays of same length into 1 using a given closure.
 ///
@@ -61,48 +61,7 @@ impl<E: Encrypter> Anonymizer<E> {
         Self { encrypter, padding }
     }
 
-    pub fn anonymize(&self, addr: IpAddr) -> IpAddr {
-        match addr {
-            IpAddr::V4(addr) => {
-                let mut bytes = [0; 16];
-                bytes[..4].copy_from_slice(&addr.octets());
-
-                let anonymized = self.anonymize_bytes(&bytes, 32);
-                let truncated: [u8; 4] = anonymized[..4].try_into().unwrap();
-
-                truncated.into()
-            }
-            IpAddr::V6(addr) => {
-                let bytes = addr.octets();
-                self.anonymize_bytes(&bytes, 128).into()
-            }
-        }
-    }
-
-    /// Anonymizes an IP address string while preserving the subnet structure.
-    ///
-    /// This is a convenience method over [`anonymize()`] to accept formatted IP string
-    /// instead of an [`IpAddr`]. If there is a possibility of invalid inputs, [`anonymize()`]
-    /// should be prefered in order to handle parsing failure.
-    ///
-    /// # Panics
-    ///
-    /// Panics if the input string is not a correctly formatted IPv4 or IPv6 address.
-    ///
-    /// [`anonymize()`]: CryptoPAn::anonymize()
-    #[allow(dead_code)]
-    pub(crate) fn anonymize_str(&self, addr: &str) -> IpAddr {
-        // FIX: panicking convenience method is considered unidiomatic
-        // | we should decide whether ergonomic is so important or not
-        // | (O) -> make this method `pub`
-        // | (X) -> move this method to the test module
-        let addr: IpAddr = addr
-            .parse()
-            .expect("input string should be a valid IPv4 or IPv6 address");
-        self.anonymize(addr)
-    }
-
-    fn anonymize_bytes(&self, bytes: &[u8; 16], n_bits: usize) -> [u8; 16] {
+    pub fn anonymize(&self, bytes: &[u8; 16], n_bits: usize) -> [u8; 16] {
         if n_bits > 128 {
             panic!("`n_bits` should be less than 128");
         }
@@ -114,7 +73,7 @@ impl<E: Encrypter> Anonymizer<E> {
             // padded = (bytes & !mask) | (self.padding & mask)
             // first `i - 1` bits from `bytes`, the rest from `padding`
             let padded = {
-                let bytes = zip_with(&mask, &bytes, |m, b| !m & b);
+                let bytes = zip_with(&mask, bytes, |m, b| !m & b);
                 let padding = zip_with(&mask, &self.padding, |m, p| m & p);
                 zip_with(&bytes, &padding, |b, p| b | p)
             };
@@ -124,6 +83,28 @@ impl<E: Encrypter> Anonymizer<E> {
             mask[i / 8] >>= 1;
         }
 
-        zip_with(&bytes, &result, |b, r| b ^ r)
+        zip_with(bytes, &result, |b, r| b ^ r)
+    }
+
+    pub fn anonymize_ip(&self, addr: IpAddr) -> IpAddr {
+        match addr {
+            IpAddr::V4(addr) => self.anonymize_ipv4(addr).into(),
+            IpAddr::V6(addr) => self.anonymize_ipv6(addr).into(),
+        }
+    }
+
+    pub fn anonymize_ipv4(&self, addr: Ipv4Addr) -> Ipv4Addr {
+        let mut bytes = [0; 16];
+        bytes[..4].copy_from_slice(&addr.octets());
+
+        let anonymized = self.anonymize(&bytes, 32);
+        let truncated: [u8; 4] = anonymized[..4].try_into().unwrap();
+
+        truncated.into()
+    }
+
+    pub fn anonymize_ipv6(&self, addr: Ipv6Addr) -> Ipv6Addr {
+        let bytes = addr.octets();
+        self.anonymize(&bytes, 128).into()
     }
 }

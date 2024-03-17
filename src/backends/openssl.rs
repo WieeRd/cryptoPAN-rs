@@ -77,10 +77,11 @@ mod tests {
         let encrypter = Aes128Enc::new(ENC_KEY)?;
         let pancake = Anonymizer::with_encrypter(encrypter, PAD_KEY);
 
-        for (addr, expected) in cases {
-            let anonymized = pancake.anonymize_str(addr);
-            let expected: IpAddr = expected.parse().unwrap();
-            assert_eq!(anonymized, expected);
+        for (address, anonymized) in cases {
+            let original: IpAddr = address.parse().unwrap();
+            let anonymized: IpAddr = anonymized.parse().unwrap();
+
+            assert_eq!(pancake.anonymize_ip(original), anonymized);
         }
 
         Ok(())
