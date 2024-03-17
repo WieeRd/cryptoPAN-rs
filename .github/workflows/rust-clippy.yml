@@ -8,24 +8,23 @@ on:
 
 jobs:
   rust-clippy-analyze:
-    name: Run rust-clippy analyzing
+    name: Run cargo clippy
     runs-on: ubuntu-latest
     permissions: write-all
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v3
-      
-      - name: Stable with clippy
-        uses: dtolnay/rust-toolchain@stable
-        with:
-          components:  clippy
-      
-      - name: Cache
-        uses: Swatinem/rust-cache@v2
-     
-      - name: Run Clippy and Upload analysis results to GitHub
-        uses: actions-rs/clippy-check@v1
-        with:
-          token: ${{ secrets.GITHUB_TOKEN }}
-          args: --all-features
-          
+    - name: Checkout code
+      uses: actions/checkout@v3
+    
+    - name: Stable with clippy
+      uses: dtolnay/rust-toolchain@stable
+      with:
+        components: clippy
+    
+    - name: Cache
+      uses: Swatinem/rust-cache@v2
+
+    - name: Run Clippy and Upload analysis results to GitHub
+      uses: actions-rs/clippy-check@v1
+      with:
+        token: ${{ secrets.GITHUB_TOKEN }}
+        args: --all-features

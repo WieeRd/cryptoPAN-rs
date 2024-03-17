@@ -5,7 +5,7 @@ on:
 
 jobs:
   rust-clippy-analyze:
-    name: Run rust-audit check
+    name: Run cargo audit
     runs-on: ubuntu-latest
     permissions: write-all
     steps:
