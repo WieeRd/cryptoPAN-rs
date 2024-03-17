@@ -1,9 +1,8 @@
-use std::net::{IpAddr, Ipv4Addr, Ipv6Addr};
+use std::net::IpAddr;
 
 /// Merges 2 arrays of same length into 1 using a given closure.
 ///
 /// Basically `Iterator::zip(a, b).map(f)` if `a` and `b` were iterators.
-#[allow(dead_code)]
 fn zip_with<F, const N: usize>(a: &[u8; N], b: &[u8; N], f: F) -> [u8; N]
 where
     F: Fn(u8, u8) -> u8,
@@ -45,38 +44,39 @@ pub trait Encrypter: Sized {
 
 pub struct Anonymizer<E: Encrypter> {
     encrypter: E,
-    padding: u128,
+    padding: [u8; 16],
 }
 
 impl<E: Encrypter> Anonymizer<E> {
     pub fn new(key: &[u8; 32]) -> Self {
-        let (enc_key, pad_key) = key.split_at(16);
-
-        // array cannot be split into arrays due to const generic limitations
-        // https://github.com/rust-lang/rust/issues/90091
-        let enc_key: &[u8; 16] = enc_key.try_into().unwrap();
-        let pad_key: &[u8; 16] = pad_key.try_into().unwrap();
-
+        let enc_key: &[u8; 16] = key[..16].try_into().unwrap();
+        let pad_key: &[u8; 16] = key[16..].try_into().unwrap();
         let encrypter = Encrypter::from_key(enc_key);
+
         Self::with_encrypter(encrypter, pad_key)
     }
 
     pub fn with_encrypter(encrypter: E, padding: &[u8; 16]) -> Self {
         let padding = encrypter.encrypt(padding);
-        let padding = u128::from_be_bytes(padding);
-
         Self { encrypter, padding }
     }
 
     pub fn anonymize(&self, addr: IpAddr) -> IpAddr {
-        let (addr_int, version) = match addr {
-            IpAddr::V4(ipv4) => (u128::from(u32::from(ipv4)), 4),
-            IpAddr::V6(ipv6) => (u128::from(ipv6), 6),
-        };
+        match addr {
+            IpAddr::V4(addr) => {
+                let mut bytes = [0; 16];
+                bytes[..4].copy_from_slice(&addr.octets());
 
-        let anonymized = self.anonymize_bin(addr_int, version);
+                let anonymized = self.anonymize_bytes(&bytes, 32);
+                let truncated: [u8; 4] = anonymized[..4].try_into().unwrap();
 
-        Self::format_ip(anonymized, version)
+                truncated.into()
+            }
+            IpAddr::V6(addr) => {
+                let bytes = addr.octets();
+                self.anonymize_bytes(&bytes, 128).into()
+            }
+        }
     }
 
     /// Anonymizes an IP address string while preserving the subnet structure.
@@ -102,36 +102,28 @@ impl<E: Encrypter> Anonymizer<E> {
         self.anonymize(addr)
     }
 
-    fn anonymize_bin(&self, addr: u128, version: u8) -> u128 {
-        // REFACTOR: add `anonymize_bytes()`, accepting any `&[u8; N]` where N <= 16
-        let (pos_max, ext_addr) = match version {
-            4 => (32, addr << 96),
-            6 => (128, addr),
-            _ => unreachable!(),
-        };
-
-        // REFACTOR: rewrite the for loop and `fold()` into something more clean and efficient
-        let mut flip_array = Vec::new();
-        for pos in 0..pos_max {
-            let mask = u128::MAX >> pos;
-            let padded_addr = (self.padding & mask) | (ext_addr & !mask);
-            let padded_bytes = padded_addr.to_be_bytes();
-
-            let encrypted = self.encrypter.encrypt(&padded_bytes);
-            flip_array.push(encrypted[0] >> 7);
+    fn anonymize_bytes(&self, bytes: &[u8; 16], n_bits: usize) -> [u8; 16] {
+        if n_bits > 128 {
+            panic!("`n_bits` should be less than 128");
         }
-        let result = flip_array
-            .into_iter()
-            .fold(0u128, |acc, x| (acc << 1) | (x as u128));
 
-        addr ^ result
-    }
+        let mut mask: [u8; 16] = [0b11111111; 16];
+        let mut result: [u8; 16] = [0; 16];
 
-    fn format_ip(addr: u128, version: u8) -> IpAddr {
-        match version {
-            4 => IpAddr::V4(Ipv4Addr::from((addr & 0xFFFFFFFF) as u32)),
-            6 => IpAddr::V6(Ipv6Addr::from(addr)),
-            _ => unreachable!(),
+        for i in 0..n_bits {
+            // padded = (bytes & !mask) | (self.padding & mask)
+            // first `i - 1` bits from `bytes`, the rest from `padding`
+            let padded = {
+                let bytes = zip_with(&mask, &bytes, |m, b| !m & b);
+                let padding = zip_with(&mask, &self.padding, |m, p| m & p);
+                zip_with(&bytes, &padding, |b, p| b | p)
+            };
+            let encrypted = self.encrypter.encrypt(&padded);
+
+            result[i / 8] = (result[i / 8] << 1) | (encrypted[0] >> 7);
+            mask[i / 8] >>= 1;
         }
+
+        zip_with(&bytes, &result, |b, r| b ^ r)
     }
 }
