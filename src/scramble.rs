@@ -17,7 +17,7 @@ where
 /// Defines a common interface for encrypting a 128-bit data.
 ///
 /// Although AES-128 is commonly used by CryptoPAn implementations, any 128-bit [block cipher]
-/// can be used as a encryption backend. As a result, this library is designed so that [`Anonymizer`]
+/// can be used as a encryption backend. As a result, this library is designed so that [`Scrambler`]
 /// is generic over [`Encrypter`].
 ///
 /// It is the implementer's responsibility to ensure that the encrypter is:
@@ -42,12 +42,12 @@ pub trait Encrypter: Sized {
     fn encrypt(&self, input: &[u8; 16]) -> [u8; 16];
 }
 
-pub struct Anonymizer<E: Encrypter> {
+pub struct Scrambler<E: Encrypter> {
     encrypter: E,
     padding: [u8; 16],
 }
 
-impl<E: Encrypter> Anonymizer<E> {
+impl<E: Encrypter> Scrambler<E> {
     pub fn new(key: &[u8; 32]) -> Self {
         let enc_key: &[u8; 16] = key[..16].try_into().unwrap();
         let pad_key: &[u8; 16] = key[16..].try_into().unwrap();
@@ -61,7 +61,7 @@ impl<E: Encrypter> Anonymizer<E> {
         Self { encrypter, padding }
     }
 
-    pub fn anonymize(&self, bytes: &[u8; 16], n_bits: usize) -> [u8; 16] {
+    pub fn scramble(&self, bytes: &[u8; 16], n_bits: usize) -> [u8; 16] {
         if n_bits > 128 {
             panic!("`n_bits` should be less than 128");
         }
@@ -86,25 +86,25 @@ impl<E: Encrypter> Anonymizer<E> {
         zip_with(bytes, &result, |b, r| b ^ r)
     }
 
-    pub fn anonymize_ip(&self, addr: IpAddr) -> IpAddr {
+    pub fn scramble_ip(&self, addr: IpAddr) -> IpAddr {
         match addr {
-            IpAddr::V4(addr) => self.anonymize_ipv4(addr).into(),
-            IpAddr::V6(addr) => self.anonymize_ipv6(addr).into(),
+            IpAddr::V4(addr) => self.scramble_ipv4(addr).into(),
+            IpAddr::V6(addr) => self.scramble_ipv6(addr).into(),
         }
     }
 
-    pub fn anonymize_ipv4(&self, addr: Ipv4Addr) -> Ipv4Addr {
+    pub fn scramble_ipv4(&self, addr: Ipv4Addr) -> Ipv4Addr {
         let mut bytes = [0; 16];
         bytes[..4].copy_from_slice(&addr.octets());
 
-        let anonymized = self.anonymize(&bytes, 32);
+        let anonymized = self.scramble(&bytes, 32);
         let truncated: [u8; 4] = anonymized[..4].try_into().unwrap();
 
         truncated.into()
     }
 
-    pub fn anonymize_ipv6(&self, addr: Ipv6Addr) -> Ipv6Addr {
+    pub fn scramble_ipv6(&self, addr: Ipv6Addr) -> Ipv6Addr {
         let bytes = addr.octets();
-        self.anonymize(&bytes, 128).into()
+        self.scramble(&bytes, 128).into()
     }
 }

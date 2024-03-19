@@ -58,7 +58,7 @@ impl Encrypter for Aes128Enc {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::Anonymizer;
+    use crate::Scrambler;
     use std::net::IpAddr;
 
     // The encryption key and sample data are from the C++ reference implementation.
@@ -75,20 +75,20 @@ mod tests {
 
     fn run_test_cases(cases: &[(&str, &str)]) -> Result<(), ErrorStack> {
         let encrypter = Aes128Enc::new(ENC_KEY)?;
-        let pancake = Anonymizer::with_encrypter(encrypter, PAD_KEY);
+        let pancake = Scrambler::with_encrypter(encrypter, PAD_KEY);
 
-        for (address, anonymized) in cases {
+        for (address, scrambled) in cases {
             let original: IpAddr = address.parse().unwrap();
-            let anonymized: IpAddr = anonymized.parse().unwrap();
+            let scrambled: IpAddr = scrambled.parse().unwrap();
 
-            assert_eq!(pancake.anonymize_ip(original), anonymized);
+            assert_eq!(pancake.scramble_ip(original), scrambled);
         }
 
         Ok(())
     }
 
     #[test]
-    fn test_anonymize_ipv4_full() -> Result<(), ErrorStack> {
+    fn test_scramble_ipv4_full() -> Result<(), ErrorStack> {
         run_test_cases(&[
             ("128.11.68.132", "135.242.180.132"),
             ("129.118.74.4", "134.136.186.123"),
@@ -164,7 +164,7 @@ mod tests {
     }
 
     #[test]
-    fn test_anonymize_ipv6_partial() -> Result<(), ErrorStack> {
+    fn test_scramble_ipv6_partial() -> Result<(), ErrorStack> {
         run_test_cases(&[
             ("::1", "78ff:f001:9fc0:20df:8380:b1f1:704:ed"),
             ("::2", "78ff:f001:9fc0:20df:8380:b1f1:704:ef"),
