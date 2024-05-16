@@ -1,5 +1,6 @@
 use std::{
     array,
+    cmp::Ordering,
     net::{IpAddr, Ipv4Addr, Ipv6Addr},
     ops::Range,
 };
@@ -20,14 +21,10 @@ where
 
 /// Creates a bitmask with specified amount of leading zeros and the rest set to 1.
 fn bitmask<const N: usize>(zero_bits: usize) -> [u8; N] {
-    array::from_fn(|i| {
-        if i < zero_bits / 8 {
-            0b00000000
-        } else if i == zero_bits / 8 {
-            0b11111111 >> (zero_bits % 8)
-        } else {
-            0b11111111
-        }
+    array::from_fn(|index| match index.cmp(&(zero_bits / 8)) {
+        Ordering::Less => 0b00000000,
+        Ordering::Equal => 0b11111111 >> (zero_bits % 8),
+        Ordering::Greater => 0b11111111,
     })
 }
 
